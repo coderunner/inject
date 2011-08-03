@@ -9,7 +9,7 @@ public class Injector
 	private final Map<Class<?>, Class<?>> mSingletonMapping;
 	private final Map<Class<?>, Object> mObjectMapping;
 	
-	public Injector(Map<Class<?>, Class<?>> aClassMapping,
+	private Injector(Map<Class<?>, Class<?>> aClassMapping,
 			Map<Class<?>, Class<?>> aSingletonMapping,
 			Map<Class<?>, Object> aObjectMapping)
 	{
@@ -18,16 +18,59 @@ public class Injector
 		mObjectMapping = aObjectMapping;
 	}
 
-	public <T> T createObject(Class<T> aClass) throws Exception
+	@SuppressWarnings("unchecked")
+	public <T> T createObject(Class<T> aClass)
 	{
-		return aClass.newInstance();
+		T o = (T) mObjectMapping.get(aClass);
+		if(o != null)
+		{
+			return o;
+		}
+		
+		Class<T> classToInstanciate = (Class<T>) mSingletonMapping.get(aClass);
+		if(classToInstanciate != null)
+		{
+			try
+			{
+				T instance = classToInstanciate.newInstance();
+				mObjectMapping.put(aClass, instance);
+				return instance;
+			}
+			catch (Exception e)
+			{
+				throw new RuntimeException(e);
+			}
+		}
+		
+		classToInstanciate = (Class<T>) mClassMapping.get(aClass);
+		if(classToInstanciate != null)
+		{
+			try
+			{
+				return classToInstanciate.newInstance();
+			}
+			catch (Exception e)
+			{
+				throw new RuntimeException(e);
+			}
+		}
+		
+		classToInstanciate = (Class<T>) mSingletonMapping.get(aClass);
+		if(classToInstanciate != null)
+		{
+			
+		}
+		throw new RuntimeException("Missing mapping for class "+aClass.getName());
+		
 	}
 	
-	public class Builder
+	public static class Builder
 	{
 		private final Map<Class<?>, Class<?>> mClassMapping = new HashMap<Class<?>, Class<?>>();
 		private final Map<Class<?>, Class<?>> mSingletonMapping = new HashMap<Class<?>, Class<?>>();
 		private final Map<Class<?>, Object> mObjectMapping = new HashMap<Class<?>, Object>();
+		
+		public Builder(){}
 		
 		public <T> Builder addClassMapping(Class<T> aKey, Class<? extends T> aValue)
 		{
