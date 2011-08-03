@@ -61,5 +61,10 @@ public class TestInjector extends TestCase
 		assertTrue(o instanceof RuntimeException);
 		assertTrue(o == ex);
 	}
+	
+	//TODO test no default constructor
+	//TODO test with Inject annotation on constructor
+	//TODO test with dependencies
+	//TODO test with setters with Inject annotation
 
 }
