@@ -1,5 +1,7 @@
 package org.inject;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Constructor;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,7 +34,7 @@ public class Injector
 		{
 			try
 			{
-				T instance = classToInstanciate.newInstance();
+				T instance = instanciate(classToInstanciate);
 				mObjectMapping.put(aClass, instance);
 				return instance;
 			}
@@ -45,23 +47,63 @@ public class Injector
 		classToInstanciate = (Class<T>) mClassMapping.get(aClass);
 		if(classToInstanciate != null)
 		{
-			try
-			{
-				return classToInstanciate.newInstance();
-			}
-			catch (Exception e)
-			{
-				throw new RuntimeException(e);
-			}
+			return instanciate(classToInstanciate);
 		}
 		
-		classToInstanciate = (Class<T>) mSingletonMapping.get(aClass);
-		if(classToInstanciate != null)
+		throw new RuntimeException("Could not instanciate class (no explicit mapping defined) "+aClass.getName());		
+	}
+
+	@SuppressWarnings("unchecked")
+	private <T> T instanciate(Class<T> aClassToInstanciate)
+	{
+		Constructor<T>[] constructors = (Constructor<T>[])aClassToInstanciate.getConstructors();
+		Constructor<T> defaultConstructor = null;
+		Constructor<T> annotatedConstructor = null;
+		for(Constructor<T> c : constructors)
 		{
-			
+			Annotation[] annotations = c.getDeclaredAnnotations();
+			for(Annotation a : annotations)
+			{
+				if(a.annotationType().equals(Inject.class))
+				{
+					annotatedConstructor = c;
+					break;
+				}
+			}
+			if (annotatedConstructor != null)
+			{
+				break;
+			}
+			if(c.getParameterTypes().length == 0)
+			{
+				defaultConstructor = c;
+			}
 		}
-		throw new RuntimeException("Missing mapping for class "+aClass.getName());
 		
+		try
+		{
+			//try annotated constructor
+			if(annotatedConstructor != null)
+			{
+				Class<?>[] paramsType = annotatedConstructor.getParameterTypes();
+				Object[] actualParams = new Object[paramsType.length];
+				for(int i=0; i<paramsType.length;i++)
+				{
+					actualParams[i] = createObject(paramsType[i]);
+				}
+				return annotatedConstructor.newInstance(actualParams);
+			}
+			//fall back on default
+			if(defaultConstructor != null)
+			{
+				return defaultConstructor.newInstance();
+			}
+		}
+		catch(Exception e)
+		{
+			throw new RuntimeException(e);
+		}
+		throw new RuntimeException("Could not find a constructor to use for instanciation of class "+ aClassToInstanciate.getName());
 	}
 	
 	public static class Builder
