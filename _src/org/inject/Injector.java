@@ -2,6 +2,7 @@ package org.inject;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -61,17 +62,9 @@ public class Injector
 		Constructor<T> annotatedConstructor = null;
 		for(Constructor<T> c : constructors)
 		{
-			Annotation[] annotations = c.getDeclaredAnnotations();
-			for(Annotation a : annotations)
+			if(c.getAnnotation(Inject.class) != null)
 			{
-				if(a.annotationType().equals(Inject.class))
-				{
-					annotatedConstructor = c;
-					break;
-				}
-			}
-			if (annotatedConstructor != null)
-			{
+				annotatedConstructor = c;
 				break;
 			}
 			if(c.getParameterTypes().length == 0)
@@ -80,30 +73,59 @@ public class Injector
 			}
 		}
 		
+		T instance = null;
 		try
 		{
 			//try annotated constructor
 			if(annotatedConstructor != null)
 			{
-				Class<?>[] paramsType = annotatedConstructor.getParameterTypes();
-				Object[] actualParams = new Object[paramsType.length];
-				for(int i=0; i<paramsType.length;i++)
-				{
-					actualParams[i] = createObject(paramsType[i]);
-				}
-				return annotatedConstructor.newInstance(actualParams);
+				Object[] actualParams = createActualParams(annotatedConstructor.getParameterTypes());
+				instance = annotatedConstructor.newInstance(actualParams);
 			}
 			//fall back on default
 			if(defaultConstructor != null)
 			{
-				return defaultConstructor.newInstance();
+				instance = defaultConstructor.newInstance();
 			}
 		}
 		catch(Exception e)
 		{
 			throw new RuntimeException(e);
 		}
-		throw new RuntimeException("Could not find a constructor to use for instanciation of class "+ aClassToInstanciate.getName());
+		
+		if(instance == null)
+		{
+			throw new RuntimeException("Could not find a constructor to use for instanciation of class "+ aClassToInstanciate.getName());
+		}
+		
+		//check for setters to inject
+		Method[] methods = aClassToInstanciate.getDeclaredMethods();
+		for(Method m : methods)
+		{
+			if(m.getAnnotation(Inject.class) != null)
+			{
+				Object[] params = createActualParams(m.getParameterTypes());
+				try
+				{
+					m.invoke(instance, params);
+				}
+				catch(Exception e)
+				{
+					throw new RuntimeException("Could not inject in class "+aClassToInstanciate.getName() +" with method "+m.getName(), e);
+				}
+			}
+		}
+		
+		return instance;
+	}
+
+	private Object[] createActualParams(Class<?>[] paramsType) {
+		Object[] actualParams = new Object[paramsType.length];
+		for(int i=0; i<paramsType.length;i++)
+		{
+			actualParams[i] = createObject(paramsType[i]);
+		}
+		return actualParams;
 	}
 	
 	public static class Builder

@@ -109,6 +109,21 @@ public class TestInjector extends TestCase
 		assertEquals("", o.getDependency().getString());
 	}
 	
+	public void testClassWithSetter()
+	{
+		Injector.Builder builder = new Injector.Builder();
+		
+		builder.addClassMapping(ClassWithSetterAnnotated.class, ClassWithSetterAnnotated.class);
+		builder.addClassMapping(ClassWithAnnotatedConstructor.class, ClassWithAnnotatedConstructor.class);
+		builder.addClassMapping(String.class, String.class);
+		Injector i = builder.build();
+
+		ClassWithSetterAnnotated o = i.createObject(ClassWithSetterAnnotated.class);
+		
+		assertNotNull(o.getDependency());
+		assertEquals("", o.getDependency().getString());
+	}
+	
 	public static class NoDefaultConstructorNoAnnotation
 	{
 		public NoDefaultConstructorNoAnnotation(String aString)
@@ -147,6 +162,19 @@ public class TestInjector extends TestCase
 		}
 	}
 	
-	//TODO test with setters with Inject annotation
-
+	public static class ClassWithSetterAnnotated
+	{
+		private ClassWithAnnotatedConstructor mDependency;
+		
+		@Inject
+		public void setDependency(ClassWithAnnotatedConstructor aDependency)
+		{
+			mDependency = aDependency;
+		}
+		
+		public ClassWithAnnotatedConstructor getDependency()
+		{
+			return mDependency;
+		}
+	}
 }
