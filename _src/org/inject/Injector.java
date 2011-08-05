@@ -8,6 +8,43 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * <p>This class creates objects according to predefined class mappings and inject any dependencies
+ * into the newly created class.
+ * 
+ * <p>Currently supported mappings are:<br>
+ * <ul>
+ * 	<li><strong>Class Mapping:</strong> Maps a class to a subclass. 
+ * Usually, an interface or an abstract class to one of its implementation.</li> 
+ *  <li><strong>Singleton Class Mapping:</strong>
+ * Same as class mapping, but only one instance is created and return at subsequent calls.</li>
+ * 	<li><string>Object Mapping:</strong>Maps a class to an object. The same object is return everytime.</li>
+ * </ul>
+ * 
+ * <p>When creating an object or a dependency, the mapping are consulted in the following order:<br>
+ * If an Object Mapping exist for the class, then the object is returned.<br>
+ * Else if a Singleton Class Mapping exists for the class, it is used to create the object.<br>
+ * Esle if a Class Mapping exists, it is used to create the object.<br>
+ * Otherwise, a RuntimeException is thrown.<br>
+ * 
+ * <p>To define the mappings, a Injector.Builder must be created. Then mappings are added by calling
+ * the builder's methods. Once all mappings have been defined, the build() method is called in
+ * order to create the Injector object.
+ * 
+ * <p>On the Injector object, objects are created by calling the createObject() methods.
+ * 
+ * <pre>public <T> T createObject(Class<T> aClass)</pre>
+ * 
+ * <p>This method will create an object of depending on the defined mappings (see above).
+ * 
+ * <pre>public <T> T createObject(String aClassName)</pre>
+ * 
+ * <p>This method will create an object of the given class name. No mappings necessary.
+ * It is assumed that the caller know the type (or a super type) of the class.
+ * 
+ * @author felix trepanier
+ *
+ */
 public class Injector
 {
 	private final ConcurrentHashMap<Class<?>, Constructor<?>> mConstructorCache = 
@@ -62,12 +99,12 @@ public class Injector
 	}
 	
 	@SuppressWarnings("unchecked")
-	public <T> T createObject(Class<T> aSuperType, String aClassName)
+	public <T> T createObject(String aClassName)
 	{
-		Class<T> classToInstanciate;
+		Class classToInstanciate;
 		try
 		{
-			classToInstanciate = (Class<T>)Class.forName(aClassName);
+			classToInstanciate = Class.forName(aClassName);
 		} 
 		catch (ClassNotFoundException e)
 		{

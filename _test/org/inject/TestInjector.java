@@ -140,7 +140,7 @@ public class TestInjector
 		mBuilder.addObjectMapping(String.class, value);
 		Injector i = mBuilder.build();
 
-		Object o = i.createObject(Object.class, ClassWithAnnotatedConstructor.class.getName());
+		Object o = i.createObject(ClassWithAnnotatedConstructor.class.getName());
 		
 		assertEquals(value, o.toString());
 	}
@@ -152,7 +152,7 @@ public class TestInjector
 
 		try
 		{
-			i.createObject(Object.class, "a.fake.class");
+			i.createObject("a.fake.class");
 			fail();
 		}
 		catch(RuntimeException e)

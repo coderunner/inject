@@ -1,7 +1,18 @@
+inject
+------
+
 inject is a simple dependency injection library.
 
+what is dependency injection?
+-----------------------------
+
+why is it useful?
+-----------------
+
+how does it work?
+-----------------
+
 TODO
-- add caching for methods and constructors
 - add examples
 - create web site
 - create github site
