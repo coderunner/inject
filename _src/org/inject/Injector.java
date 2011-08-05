@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -65,8 +66,15 @@ public class Injector
 		mObjectMapping = aObjectMapping;
 	}
 
-	@SuppressWarnings("unchecked")
 	public <T> T createObject(Class<T> aClass)
+	{
+		Stack<Class<?>> creationStack = new Stack<Class<?>>();
+		creationStack.push(aClass);
+		return createObject(aClass, creationStack);
+	}
+	
+	@SuppressWarnings("unchecked")
+	private <T> T createObject(Class<T> aClass, Stack<Class<?>> aStack)
 	{
 		T o = (T) mObjectMapping.get(aClass);
 		if(o != null)
@@ -79,7 +87,7 @@ public class Injector
 		{
 			try
 			{
-				T instance = instanciate(classToInstanciate);
+				T instance = instanciate(classToInstanciate, aStack);
 				mObjectMapping.put(aClass, instance);
 				return instance;
 			}
@@ -92,7 +100,7 @@ public class Injector
 		classToInstanciate = (Class<T>) mClassMapping.get(aClass);
 		if(classToInstanciate != null)
 		{
-			return instanciate(classToInstanciate);
+			return instanciate(classToInstanciate, aStack);
 		}
 		
 		throw new RuntimeException("Could not instanciate class (no explicit mapping defined) "+aClass.getName());		
@@ -110,11 +118,11 @@ public class Injector
 		{
 			throw new RuntimeException(e);
 		}
-		return (T) instanciate(classToInstanciate);
+		return (T) instanciate(classToInstanciate, new Stack());
 	}
 
 	@SuppressWarnings("unchecked")
-	private <T> T instanciate(Class<T> aClassToInstanciate)
+	private <T> T instanciate(Class<T> aClassToInstanciate, Stack<Class<?>> aStack)
 	{
 		Constructor<T> constructor = (Constructor<T>) mConstructorCache.get(aClassToInstanciate);
 		if(constructor == null)
@@ -139,10 +147,19 @@ public class Injector
 			mConstructorCache.putIfAbsent(aClassToInstanciate, constructor);
 		}
 		
+		aStack.push(aClassToInstanciate);
+		T instance = createAndInject(aClassToInstanciate, aStack, constructor);
+		aStack.pop();
+		
+		return instance;
+	}
+
+	private <T> T createAndInject(Class<T> aClassToInstanciate, Stack<Class<?>> aStack, Constructor<T> constructor)
+	{
 		T instance = null;
 		try
 		{
-			Object[] actualParams = createActualParams(constructor.getParameterTypes());
+			Object[] actualParams = createActualParams(constructor.getParameterTypes(), aStack);
 			instance = constructor.newInstance(actualParams);
 		}
 		catch(Exception e)
@@ -175,7 +192,7 @@ public class Injector
 		
 		for(Method m : injectMethod)
 		{
-			Object[] params = createActualParams(m.getParameterTypes());
+			Object[] params = createActualParams(m.getParameterTypes(), aStack);
 			try
 			{
 				m.invoke(instance, params);
@@ -185,17 +202,32 @@ public class Injector
 				throw new RuntimeException("Could not inject in class "+aClassToInstanciate.getName() +" with method "+m.getName(), e);
 			}
 		}
-		
 		return instance;
 	}
 
-	private Object[] createActualParams(Class<?>[] paramsType) {
+	private Object[] createActualParams(Class<?>[] paramsType, Stack<Class<?>> aStack) {
 		Object[] actualParams = new Object[paramsType.length];
 		for(int i=0; i<paramsType.length;i++)
 		{
-			actualParams[i] = createObject(paramsType[i]);
+			if(aStack.contains(paramsType[i]))
+			{
+				throw new RuntimeException("Circular dependency detected while trying to instanciate "+paramsType[i].getName()+": " + printStack(aStack));
+			}
+			aStack.push(paramsType[i]);
+			actualParams[i] = createObject(paramsType[i], aStack);
+			aStack.pop();
 		}
 		return actualParams;
+	}
+	
+	private static String printStack(Stack<Class<?>> aStack)
+	{
+		StringBuffer sb = new StringBuffer("Creation stack: ");
+		for(Class<?> c : aStack)
+		{
+			sb.append(c.getName()).append("->");
+		}
+		return sb.toString();
 	}
 	
 	public static class Builder

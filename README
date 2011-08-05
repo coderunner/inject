@@ -12,9 +12,6 @@ why is it useful?
 how does it work?
 -----------------
 
-TODO
-- add examples
-- create web site
-- create github site
-- javadoc
-- readme as doc
+Limitations
+-----------
+Circular dependencies (A -> B -> A) are not handled.

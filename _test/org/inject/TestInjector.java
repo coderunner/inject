@@ -159,6 +159,26 @@ public class TestInjector
 		{}
 	}
 	
+	@Test
+	public void detectCircularDependency()
+	{
+		mBuilder.addClassMapping(CircularDependencyA.class, CircularDependencyA.class);
+		mBuilder.addClassMapping(CircularDependencyB.class, CircularDependencyB.class);
+		
+		Injector i = mBuilder.build();
+
+		try
+		{
+			i.createObject(CircularDependencyA.class);
+			fail();
+		}
+		catch(RuntimeException e)
+		{
+			String a = e.getMessage();
+			System.out.print(a);
+		}
+	}
+	
 	public static class NoDefaultConstructorNoAnnotation
 	{
 		public NoDefaultConstructorNoAnnotation(String aString)
@@ -218,4 +238,20 @@ public class TestInjector
 			return mDependency;
 		}
 	}
+	
+	public static class CircularDependencyA
+	{
+		@Inject
+		public CircularDependencyA(CircularDependencyB aDependency)
+		{}
+	}
+	
+	public static class CircularDependencyB
+	{
+		@Inject
+		public CircularDependencyB(CircularDependencyA aDependency)
+		{}
+	}
+	
+	
 }
