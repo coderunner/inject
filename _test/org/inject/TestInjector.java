@@ -18,6 +18,20 @@ public class TestInjector
 	}
 	
 	@Test
+	public void reusingTheBuilderFails() throws Exception
+	{
+		mBuilder.addClassMapping(String.class, String.class);
+		mBuilder.build();
+		try
+		{
+			mBuilder.build();
+			fail();
+		}
+		catch(RuntimeException e)
+		{}
+	}
+	
+	@Test
 	public void failToCreateIfNoMapping() throws Exception
 	{		
 		Injector i = mBuilder.build();

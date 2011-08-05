@@ -1,13 +1,20 @@
 package org.inject;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Injector
 {
+	private final ConcurrentHashMap<Class<?>, Constructor<?>> mConstructorCache = 
+		new ConcurrentHashMap<Class<?>, Constructor<?>>();
+	private final ConcurrentHashMap<Class<?>, Method[]> mMethodCache = 
+		new ConcurrentHashMap<Class<?>, Method[]>();
+	
 	private final Map<Class<?>, Class<?>> mClassMapping;
 	private final Map<Class<?>, Class<?>> mSingletonMapping;
 	private final Map<Class<?>, Object> mObjectMapping;
@@ -72,36 +79,34 @@ public class Injector
 	@SuppressWarnings("unchecked")
 	private <T> T instanciate(Class<T> aClassToInstanciate)
 	{
-		Constructor<T>[] constructors = (Constructor<T>[])aClassToInstanciate.getConstructors();
-		Constructor<T> defaultConstructor = null;
-		Constructor<T> annotatedConstructor = null;
-		for(Constructor<T> c : constructors)
+		Constructor<T> constructor = (Constructor<T>) mConstructorCache.get(aClassToInstanciate);
+		if(constructor == null)
 		{
-			if(c.getAnnotation(Inject.class) != null)
+			//no cached constructor find the one to use
+			Constructor<T>[] constructors = (Constructor<T>[])aClassToInstanciate.getConstructors();
+			Constructor<T> defaultConstructor = null;
+			Constructor<T> annotatedConstructor = null;
+			for(Constructor<T> c : constructors)
 			{
-				annotatedConstructor = c;
-				break;
+				if(c.getAnnotation(Inject.class) != null)
+				{
+					annotatedConstructor = c;
+					break;
+				}
+				if(c.getParameterTypes().length == 0)
+				{
+					defaultConstructor = c;
+				}
 			}
-			if(c.getParameterTypes().length == 0)
-			{
-				defaultConstructor = c;
-			}
+			constructor = annotatedConstructor != null ? annotatedConstructor : defaultConstructor;
+			mConstructorCache.putIfAbsent(aClassToInstanciate, constructor);
 		}
 		
 		T instance = null;
 		try
 		{
-			//try annotated constructor
-			if(annotatedConstructor != null)
-			{
-				Object[] actualParams = createActualParams(annotatedConstructor.getParameterTypes());
-				instance = annotatedConstructor.newInstance(actualParams);
-			}
-			//fall back on default
-			if(defaultConstructor != null)
-			{
-				instance = defaultConstructor.newInstance();
-			}
+			Object[] actualParams = createActualParams(constructor.getParameterTypes());
+			instance = constructor.newInstance(actualParams);
 		}
 		catch(Exception e)
 		{
@@ -114,20 +119,33 @@ public class Injector
 		}
 		
 		//check for setters to inject
-		Method[] methods = aClassToInstanciate.getDeclaredMethods();
-		for(Method m : methods)
+		Method[] injectMethod = mMethodCache.get(aClassToInstanciate);
+		if(injectMethod == null)
 		{
-			if(m.getAnnotation(Inject.class) != null)
+			List<Method> injectMethodList = new ArrayList<Method>();
+			Method[] allMethods = aClassToInstanciate.getDeclaredMethods();
+			for(Method m : allMethods)
 			{
-				Object[] params = createActualParams(m.getParameterTypes());
-				try
+				if(m.getAnnotation(Inject.class) != null)
 				{
-					m.invoke(instance, params);
+					injectMethodList.add(m);
 				}
-				catch(Exception e)
-				{
-					throw new RuntimeException("Could not inject in class "+aClassToInstanciate.getName() +" with method "+m.getName(), e);
-				}
+			}
+			injectMethod = new Method[injectMethodList.size()];
+			System.arraycopy(injectMethodList.toArray(), 0, injectMethod, 0, injectMethodList.size());
+			mMethodCache.putIfAbsent(aClassToInstanciate, injectMethod);
+		}
+		
+		for(Method m : injectMethod)
+		{
+			Object[] params = createActualParams(m.getParameterTypes());
+			try
+			{
+				m.invoke(instance, params);
+			}
+			catch(Exception e)
+			{
+				throw new RuntimeException("Could not inject in class "+aClassToInstanciate.getName() +" with method "+m.getName(), e);
 			}
 		}
 		
@@ -148,30 +166,44 @@ public class Injector
 		private final Map<Class<?>, Class<?>> mClassMapping = new HashMap<Class<?>, Class<?>>();
 		private final Map<Class<?>, Class<?>> mSingletonMapping = new HashMap<Class<?>, Class<?>>();
 		private final Map<Class<?>, Object> mObjectMapping = new HashMap<Class<?>, Object>();
+		private boolean mWasBuilt = false;
 		
 		public Builder(){}
 		
 		public <T> Builder addClassMapping(Class<T> aKey, Class<? extends T> aValue)
 		{
+			check();
 			mClassMapping.put(aKey, aValue);
 			return this;
 		}
 		
 		public <T> Builder addSingletonMapping(Class<T> aKey, Class<? extends T> aValue)
 		{
+			check();
 			mSingletonMapping.put(aKey, aValue);
 			return this;
 		}
 		
 		public <T> Builder addObjectMapping(Class<T> aKey, Object aValue)
 		{
+			check();
 			mObjectMapping.put(aKey, aValue);
 			return this;
 		}
 		
 		public Injector build()
 		{
+			check();
+			mWasBuilt = true;
 			return new Injector(mClassMapping, mSingletonMapping, mObjectMapping);
+		}
+		
+		private void check()
+		{
+			if(mWasBuilt)
+			{
+				throw new RuntimeException("Can not reuse a builder after the injector was built.");
+			}
 		}
 	}
 }
