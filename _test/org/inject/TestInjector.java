@@ -2,24 +2,25 @@ package org.inject;
 
 import org.inject.Injector;
 
-import junit.framework.TestCase;
+import org.junit.Test;
+import static org.junit.Assert.* ;
 
-public class TestInjector extends TestCase
+public class TestInjector
 {
-	public void testDirectClassMapping() throws Exception
+	private final Injector.Builder mBuilder = new Injector.Builder();
+	
+	@Test
+	public void createObjectWithClassMapping() throws Exception
 	{
-		Injector.Builder builder = new Injector.Builder();
-		
-		builder.addClassMapping(String.class, String.class);
-		Injector i = builder.build();
+		mBuilder.addClassMapping(String.class, String.class);
+		Injector i = mBuilder.build();
 		assertTrue(i.createObject(String.class) instanceof String);
 	}
 	
-	public void testNoExistantMapping() throws Exception
-	{
-		Injector.Builder builder = new Injector.Builder();
-		
-		Injector i = builder.build();
+	@Test
+	public void failToCreateIfNoMapping() throws Exception
+	{		
+		Injector i = mBuilder.build();
 		try
 		{
 			i.createObject(String.class);
@@ -29,45 +30,41 @@ public class TestInjector extends TestCase
 		{}
 	}
 	
-	public void testSubClassClassMapping() throws Exception
-	{
-		Injector.Builder builder = new Injector.Builder();
-		
-		builder.addClassMapping(Exception.class, RuntimeException.class);
-		Injector i = builder.build();
+	@Test
+	public void createSubClass() throws Exception
+	{		
+		mBuilder.addClassMapping(Exception.class, RuntimeException.class);
+		Injector i = mBuilder.build();
 		assertTrue(i.createObject(Exception.class) instanceof RuntimeException);
 	}
 	
-	public void testSingletonClassMapping() throws Exception
-	{
-		Injector.Builder builder = new Injector.Builder();
-		
-		builder.addSingletonMapping(Exception.class, RuntimeException.class);
-		Injector i = builder.build();
+	@Test
+	public void createSingletonClass() throws Exception
+	{		
+		mBuilder.addSingletonMapping(Exception.class, RuntimeException.class);
+		Injector i = mBuilder.build();
 		Object o = i.createObject(Exception.class);
 		assertTrue(o instanceof RuntimeException);
 		Object o2 = i.createObject(Exception.class);
 		assertTrue(o == o2);
 	}
 	
-	public void testObjectClassMapping() throws Exception
-	{
-		Injector.Builder builder = new Injector.Builder();
-		
+	@Test
+	public void createObjectwithObjectMapping() throws Exception
+	{		
 		RuntimeException ex = new RuntimeException();
-		builder.addObjectMapping(Exception.class, ex);
-		Injector i = builder.build();
+		mBuilder.addObjectMapping(Exception.class, ex);
+		Injector i = mBuilder.build();
 		Object o = i.createObject(Exception.class);
 		assertTrue(o instanceof RuntimeException);
 		assertTrue(o == ex);
 	}
 	
-	public void testClassNoConstructorNoAnnotation()
-	{
-		Injector.Builder builder = new Injector.Builder();
-		
-		builder.addClassMapping(NoDefaultConstructorNoAnnotation.class, NoDefaultConstructorNoAnnotation.class);
-		Injector i = builder.build();
+	@Test
+	public void failToCreateNoConstructorNoAnnotation()
+	{		
+		mBuilder.addClassMapping(NoDefaultConstructorNoAnnotation.class, NoDefaultConstructorNoAnnotation.class);
+		Injector i = mBuilder.build();
 		
 		try
 		{
@@ -79,14 +76,14 @@ public class TestInjector extends TestCase
 		
 	}
 	
-	public void testClassWithAnnotatedConstructor()
+	@Test
+	public void createWithAnnotatedConstructor()
 	{
 		String injected = "injected";
-		Injector.Builder builder = new Injector.Builder();
 		
-		builder.addClassMapping(ClassWithAnnotatedConstructor.class, ClassWithAnnotatedConstructor.class);
-		builder.addObjectMapping(String.class, injected);
-		Injector i = builder.build();
+		mBuilder.addClassMapping(ClassWithAnnotatedConstructor.class, ClassWithAnnotatedConstructor.class);
+		mBuilder.addObjectMapping(String.class, injected);
+		Injector i = mBuilder.build();
 
 		ClassWithAnnotatedConstructor o = 
 			i.createObject(ClassWithAnnotatedConstructor.class);
@@ -94,14 +91,13 @@ public class TestInjector extends TestCase
 		assertEquals(injected, o.getString());		
 	}
 	
-	public void testClassWithDependency()
-	{
-		Injector.Builder builder = new Injector.Builder();
-		
-		builder.addClassMapping(ClassWithDependency.class, ClassWithDependency.class);
-		builder.addClassMapping(ClassWithAnnotatedConstructor.class, ClassWithAnnotatedConstructor.class);
-		builder.addClassMapping(String.class, String.class);
-		Injector i = builder.build();
+	@Test
+	public void createClassWithDependency()
+	{		
+		mBuilder.addClassMapping(ClassWithDependency.class, ClassWithDependency.class);
+		mBuilder.addClassMapping(ClassWithAnnotatedConstructor.class, ClassWithAnnotatedConstructor.class);
+		mBuilder.addClassMapping(String.class, String.class);
+		Injector i = mBuilder.build();
 
 		ClassWithDependency o = i.createObject(ClassWithDependency.class);
 		
@@ -109,14 +105,13 @@ public class TestInjector extends TestCase
 		assertEquals("", o.getDependency().getString());
 	}
 	
-	public void testClassWithSetter()
-	{
-		Injector.Builder builder = new Injector.Builder();
-		
-		builder.addClassMapping(ClassWithSetterAnnotated.class, ClassWithSetterAnnotated.class);
-		builder.addClassMapping(ClassWithAnnotatedConstructor.class, ClassWithAnnotatedConstructor.class);
-		builder.addClassMapping(String.class, String.class);
-		Injector i = builder.build();
+	@Test
+	public void createClassWithSetter()
+	{		
+		mBuilder.addClassMapping(ClassWithSetterAnnotated.class, ClassWithSetterAnnotated.class);
+		mBuilder.addClassMapping(ClassWithAnnotatedConstructor.class, ClassWithAnnotatedConstructor.class);
+		mBuilder.addClassMapping(String.class, String.class);
+		Injector i = mBuilder.build();
 
 		ClassWithSetterAnnotated o = i.createObject(ClassWithSetterAnnotated.class);
 		
@@ -124,23 +119,22 @@ public class TestInjector extends TestCase
 		assertEquals("", o.getDependency().getString());
 	}
 	
-	public void testClassByName()
+	@Test
+	public void createClassByName()
 	{
-		String value = "value";
-		Injector.Builder builder = new Injector.Builder();
-		
-		builder.addObjectMapping(String.class, value);
-		Injector i = builder.build();
+		String value = "value";		
+		mBuilder.addObjectMapping(String.class, value);
+		Injector i = mBuilder.build();
 
 		Object o = i.createObject(Object.class, ClassWithAnnotatedConstructor.class.getName());
 		
 		assertEquals(value, o.toString());
 	}
 	
-	public void testClassByNameDoNotExists()
+	@Test
+	public void failToCreateClassByNameDoNotExists()
 	{
-		Injector.Builder builder = new Injector.Builder();
-		Injector i = builder.build();
+		Injector i = mBuilder.build();
 
 		try
 		{
