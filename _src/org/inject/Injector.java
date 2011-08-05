@@ -253,6 +253,12 @@ public class Injector
 		return sb.toString();
 	}
 	
+	/**
+	 * Builder class for {@link Injector}.
+	 * 
+	 * @author felix trepanier
+	 *
+	 */
 	public static class Builder
 	{
 		private final Map<Class<?>, Class<?>> mClassMapping = new HashMap<Class<?>, Class<?>>();
@@ -262,6 +268,14 @@ public class Injector
 		
 		public Builder(){}
 		
+		/**
+		 * Add a class mapping. A new instance of the mapped class will be created every time.
+		 * 
+		 * @param <T>
+		 * @param aKey The key
+		 * @param aValue The class to instantiate
+		 * @return the builder
+		 */
 		public <T> Builder addClassMapping(Class<T> aKey, Class<? extends T> aValue)
 		{
 			check();
@@ -269,6 +283,15 @@ public class Injector
 			return this;
 		}
 		
+		/**
+ 		 * Add a singleton class mapping. A single instance of the mapped class will be created, but it
+ 		 * will be return all the time.
+ 		 * 
+		 * @param <T>
+		 * @param aKey The key
+		 * @param aValue The class to instantiate
+		 * @return the builder
+		 */
 		public <T> Builder addSingletonMapping(Class<T> aKey, Class<? extends T> aValue)
 		{
 			check();
@@ -276,6 +299,14 @@ public class Injector
 			return this;
 		}
 		
+		/**
+		 * Add an object mapping. This object will be returned every time.
+		 *  
+		 * @param <T>
+		 * @param aKey The key
+		 * @param aValue The object
+		 * @return the builder
+		 */
 		public <T> Builder addObjectMapping(Class<T> aKey, Object aValue)
 		{
 			check();
@@ -283,6 +314,10 @@ public class Injector
 			return this;
 		}
 		
+		/**
+		 * Build the injector
+		 * @return the injector
+		 */
 		public Injector build()
 		{
 			check();
