@@ -53,6 +53,21 @@ public class Injector
 		
 		throw new RuntimeException("Could not instanciate class (no explicit mapping defined) "+aClass.getName());		
 	}
+	
+	@SuppressWarnings("unchecked")
+	public <T> T createObject(Class<T> aSuperType, String aClassName)
+	{
+		Class<T> classToInstanciate;
+		try
+		{
+			classToInstanciate = (Class<T>)Class.forName(aClassName);
+		} 
+		catch (ClassNotFoundException e)
+		{
+			throw new RuntimeException(e);
+		}
+		return (T) instanciate(classToInstanciate);
+	}
 
 	@SuppressWarnings("unchecked")
 	private <T> T instanciate(Class<T> aClassToInstanciate)

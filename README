@@ -1,1 +1,9 @@
 inject is a simple dependency injection library.
+
+TODO
+- add caching for methods and constructors
+- add examples
+- create web site
+- create github site
+- javadoc
+- readme as doc

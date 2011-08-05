@@ -124,6 +124,33 @@ public class TestInjector extends TestCase
 		assertEquals("", o.getDependency().getString());
 	}
 	
+	public void testClassByName()
+	{
+		String value = "value";
+		Injector.Builder builder = new Injector.Builder();
+		
+		builder.addObjectMapping(String.class, value);
+		Injector i = builder.build();
+
+		Object o = i.createObject(Object.class, ClassWithAnnotatedConstructor.class.getName());
+		
+		assertEquals(value, o.toString());
+	}
+	
+	public void testClassByNameDoNotExists()
+	{
+		Injector.Builder builder = new Injector.Builder();
+		Injector i = builder.build();
+
+		try
+		{
+			i.createObject(Object.class, "a.fake.class");
+			fail();
+		}
+		catch(RuntimeException e)
+		{}
+	}
+	
 	public static class NoDefaultConstructorNoAnnotation
 	{
 		public NoDefaultConstructorNoAnnotation(String aString)
@@ -143,6 +170,12 @@ public class TestInjector extends TestCase
 		public String getString()
 		{
 			return mString;
+		}
+		
+		@Override
+		public String toString()
+		{
+			return mString;			
 		}
 	}
 	
