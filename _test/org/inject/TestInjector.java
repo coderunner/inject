@@ -18,20 +18,6 @@ public class TestInjector
 	}
 	
 	@Test
-	public void reusingTheBuilderFails() throws Exception
-	{
-		mBuilder.addClassMapping(String.class, String.class);
-		mBuilder.build();
-		try
-		{
-			mBuilder.build();
-			fail();
-		}
-		catch(RuntimeException e)
-		{}
-	}
-	
-	@Test
 	public void failToCreateIfNoMapping() throws Exception
 	{		
 		Injector i = mBuilder.build();
@@ -177,6 +163,44 @@ public class TestInjector
 			String a = e.getMessage();
 			System.out.print(a);
 		}
+	}
+	
+	@Test
+	public void reusingTheBuilderFails() throws Exception
+	{
+		mBuilder.addClassMapping(String.class, String.class);
+		mBuilder.build();
+		try
+		{
+			mBuilder.build();
+			fail();
+		}
+		catch(RuntimeException e)
+		{}
+		
+		try
+		{
+			mBuilder.addClassMapping(String.class, String.class);
+			fail();
+		}
+		catch(RuntimeException e)
+		{}
+		
+		try
+		{
+			mBuilder.addSingletonMapping(String.class, String.class);
+			fail();
+		}
+		catch(RuntimeException e)
+		{}
+		
+		try
+		{
+			mBuilder.addObjectMapping(String.class, "");
+			fail();
+		}
+		catch(RuntimeException e)
+		{}
 	}
 	
 	public static class NoDefaultConstructorNoAnnotation

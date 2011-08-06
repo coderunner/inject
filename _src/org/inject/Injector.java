@@ -4,9 +4,9 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -50,6 +50,15 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class Injector
 {
+	private static final ThreadLocal<LinkedList<Class<?>>> CURRENT_CREATION_CHAIN = 
+        new ThreadLocal <LinkedList<Class<?>>> ()
+        {
+            @Override
+            protected LinkedList<Class<?>> initialValue() {
+                return new LinkedList<Class<?>>();
+        }
+    };
+    
 	private final ConcurrentHashMap<Class<?>, Constructor<?>> mConstructorCache = 
 		new ConcurrentHashMap<Class<?>, Constructor<?>>();
 	private final ConcurrentHashMap<Class<?>, Method[]> mMethodCache = 
@@ -57,7 +66,10 @@ public class Injector
 	
 	private final Map<Class<?>, Class<?>> mClassMapping;
 	private final Map<Class<?>, Class<?>> mSingletonMapping;
-	private final Map<Class<?>, Object> mObjectMapping;
+	
+	//use concurrent hash map to avoid returning different objects,
+	//if create called in more than one thread simultaneously. 
+	private final ConcurrentHashMap<Class<?>, Object> mObjectMapping;
 	
 	private Injector(Map<Class<?>, Class<?>> aClassMapping,
 			Map<Class<?>, Class<?>> aSingletonMapping,
@@ -65,51 +77,61 @@ public class Injector
 	{
 		mClassMapping = aClassMapping;
 		mSingletonMapping = aSingletonMapping;
-		mObjectMapping = aObjectMapping;
+		mObjectMapping = new ConcurrentHashMap<Class<?>, Object>(aObjectMapping);
 	}
 
 	public <T> T createObject(Class<T> aClass)
 	{
-		Stack<Class<?>> creationStack = new Stack<Class<?>>();
-		creationStack.push(aClass);
-		return createObject(aClass, creationStack);
+		try
+		{
+			return internCreateObject(aClass);
+		}
+		finally
+		{
+			CURRENT_CREATION_CHAIN.remove();
+		}
 	}
 	
+	public <T> T createObject(String aClassName)
+	{
+		try
+		{
+			return internCreateObject(aClassName);
+		}
+		finally
+		{
+			CURRENT_CREATION_CHAIN.remove();
+		}
+	}
+
 	@SuppressWarnings("unchecked")
-	private <T> T createObject(Class<T> aClass, Stack<Class<?>> aStack)
+	private <T> T internCreateObject(Class<T> aClass)
 	{
 		T o = (T) mObjectMapping.get(aClass);
 		if(o != null)
 		{
 			return o;
 		}
-		
+
 		Class<T> classToInstanciate = (Class<T>) mSingletonMapping.get(aClass);
 		if(classToInstanciate != null)
 		{
-			try
-			{
-				T instance = instanciate(classToInstanciate, aStack);
-				mObjectMapping.put(aClass, instance);
-				return instance;
-			}
-			catch (Exception e)
-			{
-				throw new RuntimeException(e);
-			}
+			T instance = instanciate(classToInstanciate);
+			T previousValue = (T)mObjectMapping.putIfAbsent(aClass, instance);
+			return previousValue != null ? previousValue : instance;
 		}
-		
+
 		classToInstanciate = (Class<T>) mClassMapping.get(aClass);
 		if(classToInstanciate != null)
 		{
-			return instanciate(classToInstanciate, aStack);
+			return instanciate(classToInstanciate);
 		}
-		
-		throw new RuntimeException("Could not instanciate class (no explicit mapping defined) "+aClass.getName());		
+
+		throw new RuntimeException("Could not instanciate class (no explicit mapping defined) "+aClass.getName());
 	}
 	
 	@SuppressWarnings("unchecked")
-	public <T> T createObject(String aClassName)
+	private <T> T internCreateObject(String aClassName)
 	{
 		Class classToInstanciate;
 		try
@@ -120,11 +142,11 @@ public class Injector
 		{
 			throw new RuntimeException(e);
 		}
-		return (T) instanciate(classToInstanciate, new Stack());
+		return (T) instanciate(classToInstanciate);
 	}
 
 	@SuppressWarnings("unchecked")
-	private <T> T instanciate(Class<T> aClassToInstanciate, Stack<Class<?>> aStack)
+	private <T> T instanciate(Class<T> aClassToInstanciate)
 	{
 		Constructor<T> constructor = (Constructor<T>) mConstructorCache.get(aClassToInstanciate);
 		if(constructor == null)
@@ -149,19 +171,24 @@ public class Injector
 			mConstructorCache.putIfAbsent(aClassToInstanciate, constructor);
 		}
 		
-		aStack.push(aClassToInstanciate);
-		T instance = createAndInject(aClassToInstanciate, aStack, constructor);
-		aStack.pop();
+		if(CURRENT_CREATION_CHAIN.get().contains(aClassToInstanciate))
+		{
+			throw new RuntimeException("Circular dependency detected while trying to instanciate "+
+					CURRENT_CREATION_CHAIN.get().get(0)+": " + printStack() + aClassToInstanciate.getName());
+		}
+		CURRENT_CREATION_CHAIN.get().addLast(aClassToInstanciate);
+		T instance = createAndInject(aClassToInstanciate, constructor);
+		CURRENT_CREATION_CHAIN.get().removeLast();
 		
 		return instance;
 	}
 
-	private <T> T createAndInject(Class<T> aClassToInstanciate, Stack<Class<?>> aStack, Constructor<T> constructor)
+	private <T> T createAndInject(Class<T> aClassToInstanciate, Constructor<T> constructor)
 	{
 		T instance = null;
 		try
 		{
-			Object[] actualParams = createActualParams(constructor.getParameterTypes(), aStack);
+			Object[] actualParams = createActualParams(constructor.getParameterTypes());
 			instance = constructor.newInstance(actualParams);
 		}
 		catch(Exception e)
@@ -194,7 +221,7 @@ public class Injector
 		
 		for(Method m : injectMethod)
 		{
-			Object[] params = createActualParams(m.getParameterTypes(), aStack);
+			Object[] params = createActualParams(m.getParameterTypes());
 			try
 			{
 				m.invoke(instance, params);
@@ -207,31 +234,33 @@ public class Injector
 		return instance;
 	}
 
-	private Object[] createActualParams(Class<?>[] paramsType, Stack<Class<?>> aStack) {
+	private Object[] createActualParams(Class<?>[] paramsType)
+	{
 		Object[] actualParams = new Object[paramsType.length];
 		for(int i=0; i<paramsType.length;i++)
 		{
-			if(aStack.contains(paramsType[i]))
-			{
-				throw new RuntimeException("Circular dependency detected while trying to instanciate "+paramsType[i].getName()+": " + printStack(aStack));
-			}
-			aStack.push(paramsType[i]);
-			actualParams[i] = createObject(paramsType[i], aStack);
-			aStack.pop();
+			actualParams[i] = internCreateObject(paramsType[i]);
 		}
 		return actualParams;
 	}
 	
-	private static String printStack(Stack<Class<?>> aStack)
+	private static String printStack()
 	{
+		List<Class<?>> chain = CURRENT_CREATION_CHAIN.get();
 		StringBuffer sb = new StringBuffer("Creation stack: ");
-		for(Class<?> c : aStack)
+		for(Class<?> c : chain)
 		{
 			sb.append(c.getName()).append("->");
 		}
 		return sb.toString();
 	}
 	
+	/**
+	 * Builder class for {@link Injector}.
+	 * 
+	 * @author felix trepanier
+	 *
+	 */
 	public static class Builder
 	{
 		private final Map<Class<?>, Class<?>> mClassMapping = new HashMap<Class<?>, Class<?>>();
@@ -241,6 +270,14 @@ public class Injector
 		
 		public Builder(){}
 		
+		/**
+		 * Add a class mapping. A new instance of the mapped class will be created every time.
+		 * 
+		 * @param <T>
+		 * @param aKey The key
+		 * @param aValue The class to instantiate
+		 * @return the builder
+		 */
 		public <T> Builder addClassMapping(Class<T> aKey, Class<? extends T> aValue)
 		{
 			check();
@@ -248,6 +285,15 @@ public class Injector
 			return this;
 		}
 		
+		/**
+ 		 * Add a singleton class mapping. A single instance of the mapped class will be created, but it
+ 		 * will be return all the time.
+ 		 * 
+		 * @param <T>
+		 * @param aKey The key
+		 * @param aValue The class to instantiate
+		 * @return the builder
+		 */
 		public <T> Builder addSingletonMapping(Class<T> aKey, Class<? extends T> aValue)
 		{
 			check();
@@ -255,6 +301,14 @@ public class Injector
 			return this;
 		}
 		
+		/**
+		 * Add an object mapping. This object will be returned every time.
+		 *  
+		 * @param <T>
+		 * @param aKey The key
+		 * @param aValue The object
+		 * @return the builder
+		 */
 		public <T> Builder addObjectMapping(Class<T> aKey, Object aValue)
 		{
 			check();
@@ -262,6 +316,10 @@ public class Injector
 			return this;
 		}
 		
+		/**
+		 * Build the injector
+		 * @return the injector
+		 */
 		public Injector build()
 		{
 			check();

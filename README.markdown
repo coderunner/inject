@@ -14,5 +14,4 @@ how does it work?
 
 Limitations
 -----------
-Circular dependencies (A -> B -> A) are not handled.
-Detected, but need to test more...
+Circular dependencies (A -> B -> A) are detected but not resolved.
