@@ -43,6 +43,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>This method will create an object of the given class name. No mappings necessary.
  * It is assumed that the caller know the type (or a super type) of the class.
  * 
+ * It is important to note that the Builder class is not thread-safe, while the injector class is thread-safe.
+ * 
  * @author felix trepanier
  *
  */
