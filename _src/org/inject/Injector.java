@@ -64,20 +64,20 @@ public class Injector
 	private final ConcurrentHashMap<Class<?>, Method[]> mMethodCache = 
 		new ConcurrentHashMap<Class<?>, Method[]>();
 	
-	private final Map<Class<?>, Class<?>> mClassMapping;
-	private final Map<Class<?>, Class<?>> mSingletonMapping;
+	private final Map<Class<?>, Class<?>> mClassBindings;
+	private final Map<Class<?>, Class<?>> mSingletonBindings;
 	
 	//use concurrent hash map to avoid returning different objects,
 	//if create called in more than one thread simultaneously. 
-	private final ConcurrentHashMap<Class<?>, Object> mObjectMapping;
+	private final ConcurrentHashMap<Class<?>, Object> mObjectBindings;
 	
-	private Injector(Map<Class<?>, Class<?>> aClassMapping,
-			Map<Class<?>, Class<?>> aSingletonMapping,
-			Map<Class<?>, Object> aObjectMapping)
+	private Injector(Map<Class<?>, Class<?>> aClassBindings,
+			Map<Class<?>, Class<?>> aSingletonBindings,
+			Map<Class<?>, Object> aObjectBindings)
 	{
-		mClassMapping = aClassMapping;
-		mSingletonMapping = aSingletonMapping;
-		mObjectMapping = new ConcurrentHashMap<Class<?>, Object>(aObjectMapping);
+		mClassBindings = aClassBindings;
+		mSingletonBindings = aSingletonBindings;
+		mObjectBindings = new ConcurrentHashMap<Class<?>, Object>(aObjectBindings);
 	}
 
 	public <T> T createObject(Class<T> aClass)
@@ -107,21 +107,21 @@ public class Injector
 	@SuppressWarnings("unchecked")
 	private <T> T internCreateObject(Class<T> aClass)
 	{
-		T o = (T) mObjectMapping.get(aClass);
+		T o = (T) mObjectBindings.get(aClass);
 		if(o != null)
 		{
 			return o;
 		}
 
-		Class<T> classToInstanciate = (Class<T>) mSingletonMapping.get(aClass);
+		Class<T> classToInstanciate = (Class<T>) mSingletonBindings.get(aClass);
 		if(classToInstanciate != null)
 		{
 			T instance = instanciate(classToInstanciate);
-			T previousValue = (T)mObjectMapping.putIfAbsent(aClass, instance);
+			T previousValue = (T)mObjectBindings.putIfAbsent(aClass, instance);
 			return previousValue != null ? previousValue : instance;
 		}
 
-		classToInstanciate = (Class<T>) mClassMapping.get(aClass);
+		classToInstanciate = (Class<T>) mClassBindings.get(aClass);
 		if(classToInstanciate != null)
 		{
 			return instanciate(classToInstanciate);
@@ -263,56 +263,56 @@ public class Injector
 	 */
 	public static class Builder
 	{
-		private final Map<Class<?>, Class<?>> mClassMapping = new HashMap<Class<?>, Class<?>>();
-		private final Map<Class<?>, Class<?>> mSingletonMapping = new HashMap<Class<?>, Class<?>>();
-		private final Map<Class<?>, Object> mObjectMapping = new HashMap<Class<?>, Object>();
+		private final Map<Class<?>, Class<?>> mClassBindings = new HashMap<Class<?>, Class<?>>();
+		private final Map<Class<?>, Class<?>> mSingletonBindings = new HashMap<Class<?>, Class<?>>();
+		private final Map<Class<?>, Object> mObjectBindings = new HashMap<Class<?>, Object>();
 		private boolean mWasBuilt = false;
 		
 		public Builder(){}
 		
 		/**
-		 * Add a class mapping. A new instance of the mapped class will be created every time.
+		 * Add a class mbinding. A new instance of the mapped class will be created every time.
 		 * 
 		 * @param <T>
-		 * @param aKey The key
-		 * @param aValue The class to instantiate
+		 * @param aFrom The key
+		 * @param aTo The class to instantiate
 		 * @return the builder
 		 */
-		public <T> Builder addClassMapping(Class<T> aKey, Class<? extends T> aValue)
+		public <T> Builder addClassBinding(Class<T> aFrom, Class<? extends T> aTo)
 		{
 			check();
-			mClassMapping.put(aKey, aValue);
+			mClassBindings.put(aFrom, aTo);
 			return this;
 		}
 		
 		/**
- 		 * Add a singleton class mapping. A single instance of the mapped class will be created, but it
+ 		 * Add a singleton class binding. A single instance of the mapped class will be created, but it
  		 * will be return all the time.
  		 * 
 		 * @param <T>
-		 * @param aKey The key
-		 * @param aValue The class to instantiate
+		 * @param aFrom The key
+		 * @param aTo The class to instantiate
 		 * @return the builder
 		 */
-		public <T> Builder addSingletonMapping(Class<T> aKey, Class<? extends T> aValue)
+		public <T> Builder addSingletonMapping(Class<T> aFrom, Class<? extends T> aTo)
 		{
 			check();
-			mSingletonMapping.put(aKey, aValue);
+			mSingletonBindings.put(aFrom, aTo);
 			return this;
 		}
 		
 		/**
-		 * Add an object mapping. This object will be returned every time.
+		 * Add an object binding. The bound object will be injected every time.
 		 *  
 		 * @param <T>
-		 * @param aKey The key
-		 * @param aValue The object
+		 * @param aFrom The key
+		 * @param aTo The object
 		 * @return the builder
 		 */
-		public <T> Builder addObjectMapping(Class<T> aKey, Object aValue)
+		public <T> Builder addObjectMapping(Class<T> aFrom, Object aTo)
 		{
 			check();
-			mObjectMapping.put(aKey, aValue);
+			mObjectBindings.put(aFrom, aTo);
 			return this;
 		}
 		
@@ -324,7 +324,7 @@ public class Injector
 		{
 			check();
 			mWasBuilt = true;
-			return new Injector(mClassMapping, mSingletonMapping, mObjectMapping);
+			return new Injector(mClassBindings, mSingletonBindings, mObjectBindings);
 		}
 		
 		private void check()

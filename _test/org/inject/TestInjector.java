@@ -12,7 +12,7 @@ public class TestInjector
 	@Test
 	public void createObjectWithClassMapping() throws Exception
 	{
-		mBuilder.addClassMapping(String.class, String.class);
+		mBuilder.addClassBinding(String.class, String.class);
 		Injector i = mBuilder.build();
 		assertTrue(i.createObject(String.class) instanceof String);
 	}
@@ -33,7 +33,7 @@ public class TestInjector
 	@Test
 	public void createSubClass() throws Exception
 	{		
-		mBuilder.addClassMapping(Exception.class, RuntimeException.class);
+		mBuilder.addClassBinding(Exception.class, RuntimeException.class);
 		Injector i = mBuilder.build();
 		assertTrue(i.createObject(Exception.class) instanceof RuntimeException);
 	}
@@ -63,7 +63,7 @@ public class TestInjector
 	@Test
 	public void failToCreateNoConstructorNoAnnotation()
 	{		
-		mBuilder.addClassMapping(NoDefaultConstructorNoAnnotation.class, NoDefaultConstructorNoAnnotation.class);
+		mBuilder.addClassBinding(NoDefaultConstructorNoAnnotation.class, NoDefaultConstructorNoAnnotation.class);
 		Injector i = mBuilder.build();
 		
 		try
@@ -81,7 +81,7 @@ public class TestInjector
 	{
 		String injected = "injected";
 		
-		mBuilder.addClassMapping(ClassWithAnnotatedConstructor.class, ClassWithAnnotatedConstructor.class);
+		mBuilder.addClassBinding(ClassWithAnnotatedConstructor.class, ClassWithAnnotatedConstructor.class);
 		mBuilder.addObjectMapping(String.class, injected);
 		Injector i = mBuilder.build();
 
@@ -94,9 +94,9 @@ public class TestInjector
 	@Test
 	public void createClassWithDependency()
 	{		
-		mBuilder.addClassMapping(ClassWithDependency.class, ClassWithDependency.class);
-		mBuilder.addClassMapping(ClassWithAnnotatedConstructor.class, ClassWithAnnotatedConstructor.class);
-		mBuilder.addClassMapping(String.class, String.class);
+		mBuilder.addClassBinding(ClassWithDependency.class, ClassWithDependency.class);
+		mBuilder.addClassBinding(ClassWithAnnotatedConstructor.class, ClassWithAnnotatedConstructor.class);
+		mBuilder.addClassBinding(String.class, String.class);
 		Injector i = mBuilder.build();
 
 		ClassWithDependency o = i.createObject(ClassWithDependency.class);
@@ -108,9 +108,9 @@ public class TestInjector
 	@Test
 	public void createClassWithSetter()
 	{		
-		mBuilder.addClassMapping(ClassWithSetterAnnotated.class, ClassWithSetterAnnotated.class);
-		mBuilder.addClassMapping(ClassWithAnnotatedConstructor.class, ClassWithAnnotatedConstructor.class);
-		mBuilder.addClassMapping(String.class, String.class);
+		mBuilder.addClassBinding(ClassWithSetterAnnotated.class, ClassWithSetterAnnotated.class);
+		mBuilder.addClassBinding(ClassWithAnnotatedConstructor.class, ClassWithAnnotatedConstructor.class);
+		mBuilder.addClassBinding(String.class, String.class);
 		Injector i = mBuilder.build();
 
 		ClassWithSetterAnnotated o = i.createObject(ClassWithSetterAnnotated.class);
@@ -148,8 +148,8 @@ public class TestInjector
 	@Test
 	public void detectCircularDependency()
 	{
-		mBuilder.addClassMapping(CircularDependencyA.class, CircularDependencyA.class);
-		mBuilder.addClassMapping(CircularDependencyB.class, CircularDependencyB.class);
+		mBuilder.addClassBinding(CircularDependencyA.class, CircularDependencyA.class);
+		mBuilder.addClassBinding(CircularDependencyB.class, CircularDependencyB.class);
 		
 		Injector i = mBuilder.build();
 
@@ -168,7 +168,7 @@ public class TestInjector
 	@Test
 	public void reusingTheBuilderFails() throws Exception
 	{
-		mBuilder.addClassMapping(String.class, String.class);
+		mBuilder.addClassBinding(String.class, String.class);
 		mBuilder.build();
 		try
 		{
@@ -180,7 +180,7 @@ public class TestInjector
 		
 		try
 		{
-			mBuilder.addClassMapping(String.class, String.class);
+			mBuilder.addClassBinding(String.class, String.class);
 			fail();
 		}
 		catch(RuntimeException e)
