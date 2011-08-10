@@ -80,6 +80,14 @@ public class Injector
 		mObjectBindings = new ConcurrentHashMap<Class<?>, Object>(aObjectBindings);
 	}
 
+	/**
+	 * Create an object for the binding associated with the class passed as a parameter.
+	 * All of the object dependencies will be injected.
+	 * 
+	 * @param <T> A super type of the created object
+	 * @param aClass The binding key
+	 * @return an Object of type T bound to aBoundToClass in the Injector's bindings
+	 */
 	public <T> T createObject(Class<T> aClass)
 	{
 		try
@@ -92,6 +100,14 @@ public class Injector
 		}
 	}
 	
+	/**
+	 * Create an object of the class aClassName.
+	 * All of the object dependencies will be injected.
+	 * 
+	 * @param <T> A super type of the created object
+	 * @param aClassName The class of the object to be created
+	 * @return an object of class aClassName
+	 */
 	public <T> T createObject(String aClassName)
 	{
 		try
@@ -271,7 +287,7 @@ public class Injector
 		public Builder(){}
 		
 		/**
-		 * Add a class mbinding. A new instance of the mapped class will be created every time.
+		 * Add a class binding. A new instance of the mapped class will be created every time.
 		 * 
 		 * @param <T>
 		 * @param aFrom The key
@@ -302,7 +318,8 @@ public class Injector
 		}
 		
 		/**
-		 * Add an object binding. The bound object will be injected every time.
+		 * Add an object binding. The exact same object will be used every time a binding
+		 * of class aFrom is needed.
 		 *  
 		 * @param <T>
 		 * @param aFrom The key

@@ -6,7 +6,7 @@
 
   <groupId>coderunner</groupId>
   <artifactId>inject</artifactId>
-  <version>0.1</version>
+  <version>1.0</version>
 
   <dependencies>
     <dependency>
@@ -31,11 +31,6 @@
     
     <plugins>
       <plugin>
-        <!-- See org.jboss:jboss-parent -->
-        <artifactId>maven-enforcer-plugin</artifactId>
-        <version>1.0</version>
-      </plugin>
-      <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>2.3.2</version>
         <configuration>
@@ -54,7 +49,7 @@
           <forkMode>once</forkMode>
         </configuration>
       </plugin>
-       <plugin>
+      <plugin>
         <artifactId>maven-source-plugin</artifactId>
         <version>2.1.2</version>
         <executions>
@@ -70,16 +65,16 @@
           </execution>
         </executions>
       </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-eclipse-plugin</artifactId>
-        <version>2.8</version>
-        <configuration>
-          <downloadSources>true</downloadSources>
-          <addVersionToProjectName>true</addVersionToProjectName>
-        </configuration>
-      </plugin>
     </plugins>
   </build>
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>2.8</version>
+      </plugin>
+    </plugins>
+  </reporting>
 
 </project>
