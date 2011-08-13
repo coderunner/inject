@@ -48,3 +48,4 @@ See the example in the _example folder for more details...or look at the unit te
 Limitations
 -----------
 Circular dependencies (A -> B -> A) are detected but not resolved.
+Raw type support only.

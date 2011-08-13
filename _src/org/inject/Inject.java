@@ -8,7 +8,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 /**
- * <p>This annotation can be used on methods and constructors.
+ * <p>This annotation can be used on methods and constructors. It indicates to the
+ * {@link Injector} which constructor/method to use to inject dependencies.
  * 
  * <p>It should only be present on <b>one constructor</b> in the class. The {@link Injector} will
  * call this constructor in order to create the object.
@@ -22,6 +23,4 @@ import java.lang.annotation.Target;
 @Target({ METHOD, CONSTRUCTOR})
 @Retention(RUNTIME)
 public @interface Inject
-{
-
-}
+{}

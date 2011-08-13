@@ -11,37 +11,40 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * <p>This class creates objects according to predefined class bindings and inject any dependencies
- * into the newly created class.
+ * into the newly created object.
  * 
  * <p>Currently supported bindings are:<br>
  * <ul>
  * 	<li><strong>Class Binding:</strong> Binds a class to a subclass. 
  * Usually, an interface or an abstract class to one of its implementation.</li> 
  *  <li><strong>Singleton Class Binding:</strong>
- * Same as class binding, but only one instance is created and returned at subsequent calls.</li>
- * 	<li><string>Object Binding:</strong>Binds a class to an object. The same object is return every time.</li>
+ * Same as class binding, but only one instance is created and returned on subsequent calls.</li>
+ * 	<li><string>Object Binding:</strong>Binds a class to an object. The same object is returned every time.</li>
  * </ul>
  * 
  * <p>When creating an object or a dependency, the bindings are consulted in the following order:<br>
  * If an Object Binding exist for the class, then the object is returned.<br>
  * Else if a Singleton Class Binding exists for the class, it is used to create the object.<br>
- * Esle if a Class Binding exists, it is used to create the object.<br>
+ * Else if a Class Binding exists, it is used to create the object.<br>
  * Otherwise, a RuntimeException is thrown.<br>
  * 
- * <p>To define the bindings, a Injector.Builder must be created. Then bindings are added by calling
- * the builder's methods. Once all bindings have been defined, the build() method is called in
+ * <p>To define the bindings, an Injector.Builder must be created. Then bindings are added by calling
+ * the builder's methods. Once all bindings have been defined, the <pre>build()</pre> method is called in
  * order to create the Injector object.
  * 
- * <p>On the Injector object, objects are created by calling the createObject() methods.
+ * <p>To create objects, use the following methods:
  * 
  * <pre>public <T> T createObject(Class<T> aClass)</pre>
  * 
- * <p>This method will create an object of depending on the defined bindings (see above).
+ * <p>This method will create an object of depending on the defined bindings (see above). Injecting any dependencies
+ * and creating them if needed.
  * 
  * <pre>public <T> T createObject(String aClassName)</pre>
  * 
- * <p>This method will create an object of the given class name. No bindings necessary.
- * It is assumed that the caller know the type (or a super type) of the class.
+ * <p>This method will create an object of the given class name. Injecting any dependencies
+ * and creating them if needed. No bindings necessary.
+ * 
+ * It is assumed that the caller knows the type (or a super type) of the object. 
  * 
  * It is important to note that the Builder class is not thread-safe, while the injector class is thread-safe.
  * 
@@ -82,11 +85,11 @@ public class Injector
 
 	/**
 	 * Create an object for the binding associated with the class passed as a parameter.
-	 * All of the object dependencies will be injected.
+	 * All of the object dependencies are injected.
 	 * 
 	 * @param <T> A super type of the created object
-	 * @param aClass The binding key
-	 * @return an Object of type T bound to aBoundToClass in the Injector's bindings
+	 * @param aClass The binding class
+	 * @return an Object of type T bound to the class in the Injector's bindings
 	 */
 	public <T> T createObject(Class<T> aClass)
 	{
@@ -303,7 +306,7 @@ public class Injector
 		
 		/**
  		 * Add a singleton class binding. A single instance of the mapped class will be created, but it
- 		 * will be return all the time.
+ 		 * will be reused every the time.
  		 * 
 		 * @param <T>
 		 * @param aFrom The key
