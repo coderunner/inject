@@ -17,17 +17,11 @@ public class TestInjector
 		assertTrue(i.createObject(String.class) instanceof String);
 	}
 	
-	@Test
+	@Test(expected=RuntimeException.class)
 	public void failToCreateIfNoMapping() throws Exception
 	{		
 		Injector i = mBuilder.build();
-		try
-		{
-			i.createObject(String.class);
-			fail();
-		}
-		catch(RuntimeException e)
-		{}
+		i.createObject(String.class);
 	}
 	
 	@Test
@@ -60,21 +54,13 @@ public class TestInjector
 		assertTrue(o == ex);
 	}
 	
-	@Test
+	@Test(expected=RuntimeException.class)
 	public void failToCreateNoConstructorNoAnnotation()
 	{		
 		mBuilder.addClassBinding(NoDefaultConstructorNoAnnotation.class, NoDefaultConstructorNoAnnotation.class);
 		Injector i = mBuilder.build();
-		
-		try
-		{
-			i.createObject(NoDefaultConstructorNoAnnotation.class);
-			fail();
-		}
-		catch(RuntimeException e)
-		{}
-		
-	}
+		i.createObject(NoDefaultConstructorNoAnnotation.class);
+	}	
 	
 	@Test
 	public void createWithAnnotatedConstructor()
@@ -131,38 +117,21 @@ public class TestInjector
 		assertEquals(value, o.toString());
 	}
 	
-	@Test
+	@Test(expected=RuntimeException.class)
 	public void failToCreateClassByNameDoNotExists()
 	{
 		Injector i = mBuilder.build();
-
-		try
-		{
-			i.createObject("a.fake.class");
-			fail();
-		}
-		catch(RuntimeException e)
-		{}
+		i.createObject("a.fake.class");
 	}
 	
-	@Test
+	@Test(expected=RuntimeException.class)
 	public void detectCircularDependency()
 	{
 		mBuilder.addClassBinding(CircularDependencyA.class, CircularDependencyA.class);
 		mBuilder.addClassBinding(CircularDependencyB.class, CircularDependencyB.class);
 		
 		Injector i = mBuilder.build();
-
-		try
-		{
-			i.createObject(CircularDependencyA.class);
-			fail();
-		}
-		catch(RuntimeException e)
-		{
-			String a = e.getMessage();
-			System.out.print(a);
-		}
+		i.createObject(CircularDependencyA.class);
 	}
 	
 	@Test
